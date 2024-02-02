@@ -17,8 +17,8 @@ data{
 }
 
 parameters{
-  real<lower=0,upper=1> phi; // survival probability
-  real<lower = 0, upper = 1> real_p; // detection probability for all years
+  real<lower=0,upper=1> phi[n_occasions-1]; // survival probability
+  real<lower = 0, upper = 1> free_p[n_occasions - 1]; // detection probability for all years
 }
 
 transformed parameters{
@@ -32,12 +32,12 @@ transformed parameters{
   }
   
   for(i in observed){
-    p[i] = real_p; // fill in sampled p with a real estimate
+    p[i] = free_p[i]; // fill in sampled p with a real estimate
   }
   
   for(k in 1:n_occasions - 1){
-    tr[1,k,1] = phi;
-    tr[1,k,2] = (1 - phi);
+    tr[1,k,1] = phi[k];
+    tr[1,k,2] = (1 - phi[k]);
     tr[2,k,1] = 0;
     tr[2,k,2] = 1;
     
@@ -66,21 +66,36 @@ model{
     
 }
 
-
 generated quantities {
   vector[n_lik] log_lik;
+  vector[2] pz[n_occasions]; // marginalized likelihoods
+  vector[n_lik] y; // CH values
+  vector[n_lik] y_hat; // predicted observation probabilities from pz
+
   int counter;
+  
   counter = 1;
   for(i in 1:NsumCH){ // doesn't include critters observed first on last occasion
+      pz[sumf[i],1] = 1;
+      pz[sumf[i],2] = 0;
+      
+      for(k in (sumf[i] + 1):n_occasions){ 
+        pz[k,1] = pz[k-1,1] * tr[1,k-1,1] * pmat[1,k-1,sumCH[i,(k)]];
+        pz[k,2] = (pz[k-1, 1] * tr[1,k-1,2] + pz[k-1, 2]) * pmat[2,k-1,sumCH[i,(k)]];
+      }
+      
     if (sumf[i] >= n_occasions){
     }
     else{
           for(j in sumf[i]+1:n_occasions){
       for(k in 1:sumFR[i]){
-        log_lik[counter] = bernoulli_lpmf(CH[i,j]|phi*p[j-1]);
+        y[counter] = CH[i,j];
+        y_hat[counter] = pz[j, sumCH[i,j]];
+        log_lik[counter] = bernoulli_lpmf(CH[i,j]|phi[j-1]*p[j-1]);
         counter += 1;
       }
     }
     }
     }
+    
 }

@@ -6,6 +6,16 @@ library(loo)
 
 ##### Bringing in Data -----
 
+# R2 function 
+R2_func <- function(fit){
+  fit.df <- as.data.frame(fit)
+  ys <- as.matrix(fit.df[,which(grepl("y\\[", names(fit.df)))])
+  y_hats <- as.matrix(fit.df[,which(grepl("y_hat", names(fit.df)))])
+  Var_mu <- apply(y_hats, 1, var)
+  Var_res <- rowSums(y_hats * (1-y_hats))/ncol(y_hats)
+  Var_mu/(Var_mu+Var_res)
+}
+
 # function to import all sheets from excel file into a list
 read_excel_allsheets <- function(filename, tibble = FALSE) {
   sheets <- excel_sheets(filename)
@@ -114,50 +124,71 @@ for(i in sp2[6:10]){
                    prec = as.numeric(scale(clim_dat$Avg_rain[which(clim_dat$Year %in% 1985:2011)])), 
                    n_lik = counter - 1)
   
-  output[[s]][["phi.p."]][["model"]] <- phi.p. <- stan("phi(.)p(.).stan", data = stan_dat, 
-                                                       cores = 4, chains = 4, 
-                                                       pars = c("p", "phi", "log_lik"))
+  output[[s]][["phi.p."]][["model"]] <- phi.p. <- stan("stan_files/phi(.)p(.).stan",
+                                                       data = stan_dat, 
+                                                       cores = 1, chains = 4, 
+                                                       pars = c("p", "phi", "log_lik", 
+                                                                "y_hat"))
   output[[s]][["phi.p."]][["loo"]] <- phi.p._loo <- try(loo(phi.p.))
+  phi.p._R2 <- R2_func(phi.p.)
   
-  phitp. <- stan("phi(t)p(.).stan", data = stan_dat, 
-                 cores = 4, chains = 4, 
-                 pars = c("p", "phi", "log_lik"))
+  phitp. <- stan("stan_files/phi(t)p(.).stan", data = stan_dat, 
+                 cores = 1, chains = 4, 
+                 pars = c("p", "phi", "log_lik", 
+                          "y_hat"))
   phitp._loo <- try(loo(phitp.))
+  phitp._R2 <- R2_func(phitp.)
   
-  phi.pt <- stan("phi(.)p(t).stan", data = stan_dat, 
-                 cores = 4, chains = 4, 
-                 pars = c("p", "phi", "log_lik"))
+  phi.pt <- stan("stan_files/phi(.)p(t).stan", data = stan_dat, 
+                 cores = 1, chains = 4, 
+                 pars = c("p", "phi", "log_lik", 
+                          "y_hat"))
   phi.pt_loo <- try(loo(phi.pt))
+  phi.pt_R2 <- R2_func(phi.pt)
   
-  phitpt <- stan("phi(t)p(t).stan", data = stan_dat, 
-                 cores = 4, chains = 4, 
-                 pars = c("p", "phi", "log_lik"))
+  phitpt <- stan("stan_files/phi(t)p(t).stan", data = stan_dat, 
+                 cores = 1, chains = 4, 
+                 pars = c("p", "phi", "log_lik", 
+                          "y_hat"))
   phitpt_loo <- try(loo(phitpt))
+  phitpt_R2 <- R2_func(phitpt)
   
-  output[[s]][["phiPRECp."]][["model"]] <- phiPRECp. <- stan("phi(prec)p(.).stan", data = stan_dat, 
-                                                             cores = 4, chains = 4, 
-                                                             pars = c("p", "phi", "phi_0", "phi_prec", "log_lik"))
+  output[[s]][["phiPRECp."]][["model"]] <- phiPRECp. <- stan("stan_files/phi(prec)p(.).stan", data = stan_dat, 
+                                                             cores = 1, chains = 4, 
+                                                             pars = c("p", "phi", "phi_0", "phi_prec", "log_lik", 
+                                                                      "y_hat"))
   output[[s]][["phiPRECp."]][["loo"]] <- phiPRECp._loo <- try(loo(phiPRECp.))
+  phiPRECp._R2 <- R2_func(phiPRECp.)
   
-  phiPRECpt <- stan("phi(prec)p(t).stan", data = stan_dat, 
-                    cores = 4, chains = 4, 
-                    pars = c("p", "phi", "phi_0", "phi_prec", "log_lik"))
+  phiPRECpt <- stan("stan_files/phi(prec)p(t).stan", data = stan_dat, 
+                    cores = 1, chains = 4, 
+                    pars = c("p", "phi", "phi_0", "phi_prec", "log_lik", 
+                             "y_hat"))
   phiPRECpt_loo <- try(loo(phiPRECpt))
+  phiPRECpt_R2 <- R2_func(phiPRECpt)
   
-  output[[s]][["phiTEMPp."]][["model"]] <- phiTEMPp. <- stan("phi(temp)p(.).stan", data = stan_dat, 
-                                                             cores = 4, chains = 4, 
-                                                             pars = c("p", "phi", "phi_0", "phi_temp", "log_lik"))
+  output[[s]][["phiTEMPp."]][["model"]] <- phiTEMPp. <- stan("stan_files/phi(temp)p(.).stan", data = stan_dat, 
+                                                             cores = 1, chains = 4, 
+                                                             pars = c("p", "phi", "phi_0", "phi_temp", "log_lik", 
+                                                                      "y_hat"))
   output[[s]][["phiTEMPp."]][["loo"]] <- phiTEMPp._loo <- try(loo(phiTEMPp.))
+  phiTEMPp._R2 <- R2_func(phiTEMPp.)
   
-  phiTEMPpt <- stan("phi(temp)p(t).stan", data = stan_dat, 
-       cores = 4, chains = 4, 
-       pars = c("p", "phi", "phi_0", "phi_temp", "log_lik"))
+  phiTEMPpt <- stan("stan_files/phi(temp)p(t).stan", data = stan_dat, 
+       cores = 1, chains = 4, 
+       pars = c("p", "phi", "phi_0", "phi_temp", "log_lik", 
+                "y_hat"))
   phiTEMPpt_loo <- try(loo(phiTEMPpt))
+  phiTEMPpt_R2 <- R2_func(phiTEMPpt)
   
   output[[s]][["full_comp"]] <- try(loo_compare(phi.p._loo, phitp._loo, 
                                                 phi.pt_loo, phitpt_loo, 
                                                 phiPRECp._loo, phiPRECpt_loo, 
                                                 phiTEMPp._loo, phiTEMPpt_loo))
+  output[[s]][["R2s"]] <- list(phi.p._R2, phitp._R2, 
+                            phi.pt_R2, phitpt_R2, 
+                            phiPRECp._R2, phiPRECpt_R2, 
+                            phiTEMPp._R2, phiTEMPpt_R2)
 }
 
 saveRDS(output, "bird_mods2.rds")
