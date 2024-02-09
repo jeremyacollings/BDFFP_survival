@@ -1,5 +1,6 @@
 library(loo)
 library(rstanarm)
+library(readxl)
 
 # Calculating some extra stuff
 
@@ -115,6 +116,29 @@ names(ests.df) <- c("sp", "temp_int_low", "temp_int_med", "temp_int_up",
                     "prec_slope_low", "prec_slope_med", "prec_slope_up")
 
 write.csv(ests.df, file = "estimates.csv")
+
+# baseline parameter estimates
+
+ests <- matrix(data = NA, nrow = length(birds), ncol = 7)
+for(i in 1:length(birds)){
+  df <- as.data.frame(birds[[i]][["phi.p."]][["model"]])
+  
+  ests[i,1] <- names(birds)[[i]]
+  
+  ests[i,2] <- quantile(df$phi, 0.025)
+  ests[i,3] <- median(df$phi)
+  ests[i,4] <- quantile(df$phi, 0.975)
+  
+  ests[i,5] <- quantile(df$`p[1]`, 0.025)
+  ests[i,6] <- median(df$`p[1]`)
+  ests[i,7] <- quantile(df$`p[1]`, 0.975)
+}
+
+ests.df <- as.data.frame(ests)
+names(ests.df) <- c("sp", "phi_low", "phi_med", "phi_up", 
+                    "p_low", "p_med", "p_up")
+
+write.csv(ests.df, file = "baseline_estimates.csv")
 
 # total number of captures...
 
