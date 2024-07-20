@@ -136,3 +136,29 @@ prob_red_prec <- ((inv_log(Pmod$mu_0) -
                     inv_log(Pmod$mu_0)) * 100
 
 median(prob_red_prec)
+
+# How much did the apparent survival drop for each species from the 
+# coolest to warmest years? 
+
+mins <- maxs <- reds <- c()
+for(s in 1:29){
+  mins <- c(mins, median(Tmod$phi[which(Tmod$s == s & 
+                          Tmod$t == which(temps_scaled==min(temps_scaled)))]))
+  maxs <- c(maxs, median(Tmod$phi[which(Tmod$s == s & 
+                          Tmod$t == which(temps_scaled==max(temps_scaled)))]))
+  reds <- c(reds, (mins[s] - maxs[s])/mins[s])
+}
+
+# A. infuscatus
+
+paste(mins[1]*100, maxs[1]*100, reds[1]*100, sep = "; ")
+
+# P. albifons
+
+paste(mins[21]*100, maxs[21]*100, reds[21]*100, sep = "; ")
+
+# W. poecilinotus
+
+paste(mins[27]*100, maxs[27]*100, reds[27]*100, sep = "; ")
+
+
