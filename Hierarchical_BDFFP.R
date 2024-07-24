@@ -126,38 +126,38 @@ stan_dat <- list(NsumCH = NsumCH,
 
 # Fit Models --------------------------------------------------------------
 
-phi.p. <- stan("Uncentered/phi(.)p(.)H.stan",
+phi.p. <- stan("Stan_Scripts/phi(.)p(.)H.stan",
                data = stan_dat, 
                pars = c("log_lik", "p", "phi", "phi_0", "mu_0"))
 
-phi.pt <- stan("Uncentered/phi(.)p(t)H.stan", 
+phi.pt <- stan("Stan_Scripts/phi(.)p(t)H.stan", 
                data = stan_dat,
                pars = c("log_lik", "p", "phi", "phi_0", "mu_0"))
 
-phitp. <- stan("Uncentered/phi(t)p(.)H.stan", 
+phitp. <- stan("Stan_Scripts/phi(t)p(.)H.stan", 
                data = stan_dat,
                pars = c("log_lik", "p", "phi", "phi_0",  "mu_0"))
 
-phitpt <- stan("Uncentered/phi(t)p(t)H.stan", 
+phitpt <- stan("Stan_Scripts/phi(t)p(t)H.stan", 
                data = stan_dat,
                pars = c("log_lik", "p", "phi", "phi_0", "mu_0"))
 
-phiPRECp. <- stan("Uncentered/phi(prec)p(.)H.stan", 
+phiPRECp. <- stan("Stan_Scripts/phi(prec)p(.)H.stan", 
                   data = stan_dat,
                   pars = c("log_lik", "p", "phi", "phi_0", "mu_0",
                            "mu_prec", "phi_prec"))
 
-phiPRECpt <- stan("Uncentered/phi(prec)p(t)H.stan", 
+phiPRECpt <- stan("Stan_Scripts/phi(prec)p(t)H.stan", 
                   data = stan_dat,
                   pars = c("log_lik", "p", "phi", "phi_0", "mu_0",
                            "mu_prec", "phi_prec"))
 
-phiTEMPp. <- stan("Uncentered/phi(temp)p(.)H.stan", 
+phiTEMPp. <- stan("Stan_Scripts/phi(temp)p(.)H.stan", 
                   data = stan_dat,
                   pars = c("log_lik", "p", "phi", "phi_0", "mu_0",
                            "mu_temp", "phi_temp"))
 
-phiTEMPpt <- stan("Uncentered/phi(temp)p(t)H.stan", 
+phiTEMPpt <- stan("Stan_Scripts/phi(temp)p(t)H.stan", 
                   data = stan_dat,
                   pars = c("log_lik", "p", "phi", "phi_0",  "mu_0",
                            "mu_temp", "phi_temp"))
@@ -171,6 +171,9 @@ loo_compare(loo(phi.p.), loo(phi.pt),
 
 # Export Model Output ----------------------------------------------------
 
+phi.p.df <- spread_draws(model = phi.p., 
+                         mu_0, p[s,t], phi_0[s], phi[s])
+
 phiPRECp.df <- spread_draws(model = phiPRECp., 
                          mu_0, p[s,t], phi_0[s], phi[s,t], 
                          mu_prec, phi_prec[s])
@@ -179,9 +182,29 @@ phiTEMPp.df <- spread_draws(model = phiTEMPp.,
                          mu_0, p[s,t], phi_0[s], phi[s,t],
                          mu_temp, phi_temp[s])
 
-outs <- list(phiPRECp.df, phiTEMPp.df)
+outs <- list(phiPRECp.df, phiTEMPp.df, phi.p.df)
 
 saveRDS(outs, "outs.rds")
+
+# Baseline Estimates + Capture Numbers
+
+ns <- as.numeric(lapply(bird_dat2[sp2], function(x) sum(x == 1)))
+phi_null <- as.numeric(tapply(phi.p.df$phi, phi.p.df$s, median))
+
+baseline_dat <- cbind.data.frame(species = sp[sp2], 
+                 capture_count = ns, 
+                 phi_med = as.numeric(tapply(phi.p.df$phi, 
+                                             phi.p.df$s, median)), 
+                 phi_low = as.numeric(tapply(phi.p.df$phi, 
+                                             phi.p.df$s, quantile, 0.025)), 
+                 phi_up = as.numeric(tapply(phi.p.df$phi, 
+                                            phi.p.df$s, quantile, 0.975)))
+
+write.csv(baseline_dat, "baseline_estimates.csv")
+
+ggplot(data = baseline_dat, aes(x = species, y = phi_med, 
+                                ymin = phi_low, ymax = phi_up)) + 
+  geom_pointrange()
 
 # Calculation of ANODEV Statistic -----------------------------------------
 

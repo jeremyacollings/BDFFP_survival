@@ -11,6 +11,7 @@ outs <- readRDS("outs.rds")
 
 Pmod <- outs[[1]]
 Tmod <- outs[[2]]
+Nmod <- outs[[3]]
 
 spp.table <- read.csv("spp.table.csv")
 
